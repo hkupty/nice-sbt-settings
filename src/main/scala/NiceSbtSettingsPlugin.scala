@@ -23,6 +23,8 @@ object NiceSettingsPlugin extends sbt.Plugin {
   lazy val publishS3Resolver = settingKey[S3Resolver]("S3Resolver which will be used in publishTo")
   lazy val fatArtifactClassifier = settingKey[String]("Classifier of the fat jar artifact")
 
+  lazy val wantDocs = settingKey[Boolean]("If true will try to generate docs using literator")
+
   lazy val docsInputDir = settingKey[String]("Directory with the documented sources")
   lazy val docsOutputDir = settingKey[String]("Output directory for the generated documentation")
   lazy val generateDocs = taskKey[Unit]("Generates markdown docs from code using literator tool")
@@ -162,13 +164,16 @@ object NiceSettingsPlugin extends sbt.Plugin {
 
     lazy val releaseSettings: Seq[Setting[_]] = 
       ReleasePlugin.releaseSettings ++ Seq(
+        wantDocs := false,
         versionBump := Version.Bump.Minor
       , tagComment  := {name.value + " v" + (version in ThisBuild).value}
       , releaseProcess <<= thisProjectRef apply { ref =>
           Seq[ReleaseStep](
             checkSnapshotDependencies
-          , ReleaseStep({st => Project.extract(st).runTask(generateDocs, st)._1 })
-          , inquireVersions
+          ) ++ 
+          // Seq(ReleaseStep({st => Project.extract(st).runTask(generateDocs, st)._1 })) ++ 
+          Seq(
+            inquireVersions
           , checkReleaseNotes
           , runTest
           , setReleaseVersion
